@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equation Builder</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>Equation Builder</h1>
+            <div class="stats">
+                <div>Score: <span id="score">0</span></div>
+                <div>Level: <span id="level">1</span></div>
+                <div>Target: <span id="target">18</span></div>
+            </div>
+        </div>
+        
+        <div class="game-board" id="board"></div>
+        
+        <div class="current-equation">
+            <h3>Current Equation:</h3>
+            <div id="current-equation"></div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="resetGame()">Reset Game</button>
+            <button onclick="submitEquation()">Submit Equation</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
