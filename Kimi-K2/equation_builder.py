@@ -7,7 +7,7 @@ Connect numbers and operators to build equations and reach target values.
 import random
 import os
 import sys
-import time
+import sys
 from typing import List, Tuple, Optional
 
 class GameBoard:
@@ -18,7 +18,7 @@ class GameBoard:
         self.score = 0
         self.level = 1
         self.target = 0
-        self.game_mode = "endless"
+        self.game_mode = "timed"
         self.time_left = 60
         self.generate_board()
         self.generate_target()
@@ -94,6 +94,8 @@ class GameBoard:
             equation = equation.replace('×', '*').replace('÷', '/')
             result = eval(equation)
             return float(result)
+        except ZeroDivisionError:
+            return None # Handle division by zero
         except:
             return None
     
@@ -143,8 +145,10 @@ class GameBoard:
             return True
         return False
     
-    def reset_level(self):
-        """Reset the current level."""
+    def decrement_time(self):
+        """Decrement the time left."""
+        if self.time_left > 0:
+            self.time_left -= 1
         self.clear_selection()
         self.generate_board()
         self.generate_target()
@@ -186,7 +190,10 @@ class GameController:
         print("Equation Builder - Loading...")
         time.sleep(1)
         
-        while True:
+        self.game.game_mode = "timed"
+        self.game.time_left = 60 # Initial time
+
+        while self.game.time_left > 0:
             self.game.display_board()
             
             # Show current selection as equation
@@ -196,14 +203,77 @@ class GameController:
                     equation += self.game.board[x][y]
                 print(f"Current: {equation}")
             
+            print(f"Time remaining: {self.game.time_left}s")
+
             try:
-                key = input("Move: ").lower()
-                if not self.handle_input(key):
+                # Read a single character for input
+                key = sys.stdin.read(1)
+
+                if key == '\x1b':  # Escape character, likely start of an arrow key sequence
+                    # Read the next two characters to determine the arrow key
+                    next1 = sys.stdin.read(1)
+                    if next1 == '[':
+                        next2 = sys.stdin.read(1)
+                        if next2 == 'A': # Up arrow
+                            self.move_cursor(0, -1)
+                        elif next2 == 'B': # Down arrow
+                            self.move_cursor(0, 1)
+                        elif next2 == 'C': # Right arrow
+                            self.move_cursor(1, 0)
+                        elif next2 == 'D': # Left arrow
+                            self.move_cursor(-1, 0)
+                        else:
+                            # If it's not a recognized arrow key sequence, treat as normal input
+                            self.handle_input(next2)
+                    else:
+                        # If it's not an escape sequence we handle, treat as normal input
+                        self.handle_input(next1)
+                elif key == '\r':  # Enter key
+                    pos = (self.cursor_y, self.cursor_x)
+                    if pos not in self.game.selected and self.game.can_add_to_selection(self.cursor_y, self.cursor_x):
+                        self.game.selected.append(pos)
+                    else:
+                        # If Enter is pressed on an already selected tile, submit
+                        if self.game.submit_equation():
+                            print("Correct! Well done!")
+                            time.sleep(1)
+                            self.game.time_left = 60 # Reset timer for next level
+                        else:
+                            print("Incorrect equation. Try again!")
+                            self.game.clear_selection()
+                            time.sleep(1)
+                elif key == ' ': # Spacebar for submitting
+                    if self.game.submit_equation():
+                        print("Correct! Well done!")
+                        time.sleep(1)
+                        self.game.time_left = 60 # Reset timer for next level
+                    else:
+                        print("Incorrect equation. Try again!")
+                        self.game.clear_selection()
+                        time.sleep(1)
+                elif key.lower() == 'r': # Reset
+                    self.game.reset_level()
+                elif key.lower() == 'q': # Quit
                     break
+                else: # Other keys
+                    # Pass to handle_input for any other specific logic (e.g., if we add more commands)
+                    self.handle_input(key)
+
+                # Decrement time after processing input for the turn
+                self.game.decrement_time()
+
             except KeyboardInterrupt:
                 break
-        
+            except EOFError: # Handle cases where input stream is closed
+                break
+
         print(f"\nGame Over! Final Score: {self.game.score}")
+        if self.game.time_left <= 0:
+            print("Time's up!")
+    
+        if self.game.time_left <= 0:
+            print("Time's up!")
+    
 
 if __name__ == "__main__":
     game = GameController()
